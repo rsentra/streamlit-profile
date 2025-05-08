@@ -50,6 +50,25 @@ def get_conn_postgres(conn_name=None):
         print("SUCCESS: Connecting postgresql succeeded")
         return connection
 
+def get_db_url():
+    host = os.getenv('db_host')
+    
+    if host is not None:   #도커 컨테이너에서 실행시 환경변수로 설정값
+        print('host environment= ', host)
+        conn_name = os.getenv('db_dialect')
+        username = os.getenv('db_username')
+        password = os.getenv('db_password')
+        database = os.getenv('db_name')
+        db_uri = f"mysql+pymysql://{username}:{password}@{host}/{database}"
+    else:                 #secrets.toml을 이용할때
+        conn_name = st.secrets["connections_dbms"]["conn_name"]
+        host = st.secrets[conn_name]["host"]
+        username = st.secrets[conn_name]["username"]
+        password = st.secrets[conn_name]["password"]
+        database = st.secrets[conn_name]["database"]
+        port = st.secrets[conn_name]["port"]
+        db_uri = f"mysql+pymysql://{username}:{password}@{host}:{port}/{database}"
+    return db_uri
 
 # @st.cache_data
 def get_data_to_df(sql):
@@ -200,7 +219,7 @@ def update_df_to_table(df_u, table, u_key_cols):
             for x,y in zip (u_key_cols,u_key_vals):
                 where += f"{x} = '{y}'  and "
             query = query + where.rstrip(' and ')
-            print(i,':',query)
+            print('update-', i,':',query)
             succ_cnt += 1
     
             with conn.cursor() as cursor:
