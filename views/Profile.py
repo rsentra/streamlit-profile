@@ -4,7 +4,7 @@ import datetime
 from models import database  as db
 from libs import utils as util
 # from forms.create import show_new_form, test_form
-from libs.utils import today, years_ago_60
+# from libs.utils import today, years_ago_60
 
 DICT_COL = {'id':'번호', 'name':'이름', 'gender':'성별', 'education':'학력', 'tech_grade':'등급', 'school_name':'학교',
             'department_name':'학과', 'birth_date':'생년월일', 'graduate_date':'졸업년월', 'project_name':'프로젝트',
@@ -14,6 +14,8 @@ DICT_COL = {'id':'번호', 'name':'이름', 'gender':'성별', 'education':'학�
 
 # today = datetime.datetime.today()
 # years_ago_60 = datetime.datetime(today.year-60,1,1)
+today = util.get_days(0)
+years_ago_60 = util.get_days(-60)
 
 def init_session():
     if 'id_no' not in st.session_state:

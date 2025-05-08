@@ -11,9 +11,9 @@ from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from io import BytesIO
 import plotly.express as px
-from libs.utils import today
+from libs import utils as util
 
-# today = datetime.datetime.today()
+today = util.get_days(0)
 # years_ago_60 = datetime.datetime(today.year-60,1,1)
 DICT_DAYS = {'':0,'경력 미입력':-1,'3개월 경과':90,'6개월 경과':180,'1년이상 경과':365}
 
@@ -32,7 +32,7 @@ def inqiure_tab():
 
     init_session()
 
-    top_col1,top_col2,top_col3,top_col4,top_col5,top_col6 = st.columns([1,2,2,2,2,1])
+    top_col1,top_col2,top_col3,top_col4,top_col5,top_col6, top_col7 = st.columns([1,2,2,2,2,1,1])
     with top_col1:
         st.markdown('##### :mag_right: ')
     with top_col2:
@@ -44,6 +44,8 @@ def inqiure_tab():
     with top_col5:
         search_carr = st.selectbox('경력update필요', help="경력 입력상태를 조회",
                                    options=DICT_DAYS.keys(), label_visibility="collapsed")    
+    with top_col6:
+        search_employ = st.checkbox('퇴사자')
 
     query = f" select * from members.profiles"
     df = db.get_data_to_df(query)
@@ -94,7 +96,12 @@ def inqiure_tab():
             years_ago = today - datetime.timedelta(days = i)
             df_d = df_d[df_d['last_date'] < years_ago].copy()
 
-    with top_col6:
+    if search_employ:
+        df_d = df_d[df_d['employ_status'] != ''].copy()
+    else:
+        df_d = df_d[df_d['employ_status'] == ''].copy()
+
+    with top_col7:
         st.markdown(f':rainbow[{len(df_d)}명]')
 
     if len(df_d) ==0:
@@ -172,14 +179,13 @@ def inqiure_tab():
 
         gd.configure_selection(selection_mode=sel_mode, use_checkbox=True)
         gridoptions = gd.build()
-        grid_table = AgGrid(df_d,gridOptions=gridoptions,
-                                update_mode= GridUpdateMode.SELECTION_CHANGED,
-                                height = 500,
-                                width="100%",
-                                allow_unsafe_jscode=True,
-                                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
-                                theme = 'balham'
-                            ) 
+        grid_table = AgGrid(df_d,
+            gridOptions=gridoptions,
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            allow_unsafe_jscode=True,
+            columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+            theme='streamlit'
+        )
 
         selected_df = grid_table["selected_rows"]
    
@@ -252,6 +258,7 @@ def inqiure_tab():
                 font_name = "KoPub돋움체 Medium" if font_name =='' else font_name
                 user_params = {'font_size_2':font_size_2, 'font_size_1':font_size_1, 'font_name':font_name,'header_rows':header_rows}
                 # ppt creation using template
+                print("ppt:", dataframe)
                 pres = util.edit_pres("a", profile_data.rename(DICT_COL), dataframe, uploaded_file, user_params)
 
                 output_name = f'profile_from_{id_name}_db.pptx'
@@ -287,6 +294,12 @@ def aggrid_opt_build(df):
     df['graduate_date'] = df['graduate_date'].dt.strftime('%y년%m월')
 
     gd = GridOptionsBuilder.from_dataframe(df)
+    gd.configure_default_column(
+        flex=1,
+        minWidth=100,
+        maxWidth=500,
+        resizable=True,
+    )
     gd.configure_pagination(enabled=True)
     gd.configure_default_column(editable=True,flex=1, resizable=True)
     gd.configure_side_bar()
@@ -302,7 +315,7 @@ def aggrid_opt_build(df):
     options=[ "남",  "여"]
     gd.configure_column('gender', cellEditor='agSelectCellEditor', cellEditorParams={'values': options })
     for col in df.columns:
-        gd.configure_column(field=col, header_name=DICT_COL.get(col, col),suppressSizeToFit=False, Width=6)
+        gd.configure_column(field=col, header_name=DICT_COL.get(col, col), suppressSizeToFit=False)#, minWidth=20)
     return gd
 
 
@@ -310,6 +323,8 @@ def aggrid_opt_build(df):
 def reserved_tab():
 
     df_profile =  st.session_state['df_profile']
+    df_profile =  df_profile[df_profile['employ_status']=='']
+
     # df_career =  st.session_state['df_career']
     df_profile['age'] = df_profile['age'].fillna(0)
     df_sum = df_profile.groupby(['tech_grade','age','job_type','team'])['name'].count().reset_index().rename(columns={'name':'count'})

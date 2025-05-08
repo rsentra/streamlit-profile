@@ -9,7 +9,8 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 # from pygwalker.api.streamlit import StreamlitRenderer
 import streamlit.components.v1 as components
 
-from libs.utils import today
+# from libs.utils import today
+today = util.get_days(0)
 
 DICT_PJT = {'id':'번호', 'project_name':'프로젝트', 'project_mgmr':'PM','customer':'고객사', 'start_date':'시작일',
             'end_date':'종료일', 'master_yn':'주사업', 'co_company':'협력사', 'sales':'매출','cost':'원가', 'os':'OS',
@@ -125,7 +126,7 @@ def aggrid_opt_build(df):
     
     gd = GridOptionsBuilder.from_dataframe(df)
     gd.configure_pagination(enabled=True)
-    gd.configure_default_column(editable=True,flex=1, resizable=True)
+    gd.configure_default_column(editable=True,flex=1, minWidth=120, maxWidth=500, resizable=True)
     gd.configure_side_bar()
     gd.configure_column("sales",type=["numericColumn","numberColumnFilter","customNumericFormat"], valueFormatter="data.sales.toLocaleString();")
     gd.configure_column("cost",type=["numericColumn","numberColumnFilter","customNumericFormat"], valueFormatter="data.cost.toLocaleString();")
@@ -135,7 +136,7 @@ def aggrid_opt_build(df):
     gd.configure_column('dbms', cellEditor='agSelectCellEditor', cellEditorParams={'values': DBMS_LIST })
     gd.configure_column('os', cellEditor='agSelectCellEditor', cellEditorParams={'values': OS_LIST })
     for col in df.columns:
-        gd.configure_column(field=col, header_name=DICT_PJT.get(col, col),suppressSizeToFit=False, Width=6)
+        gd.configure_column(field=col, header_name=DICT_PJT.get(col, col),suppressSizeToFit=False) #, Width=6)
     return gd
 
 def update_process(inp_df):

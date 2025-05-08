@@ -4,9 +4,11 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 import streamlit as st
+import os
 
-today = datetime.today()
-years_ago_60 = datetime(today.year-60,1,1)
+def get_days(add_yrs=0):
+    today = datetime.today()
+    return datetime(today.year + add_yrs,today.month,today.day)
 
 def tech_grade_calc(cr_yr, edu, certi=''):
     std_yr = [0,6,9,12]
@@ -127,3 +129,85 @@ def ini_widget(init_name, init_val):
     print('initialize widget: ', init_name, init_val)
     st.session_state[init_name] = init_val
 
+#-----------------------------------------------------------
+''' local embedding '''
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
+import tiktoken
+from langchain_community.vectorstores import FAISS
+import os
+
+embeddings = HuggingFaceEmbeddings(
+                                        model_name="jhgan/ko-sroberta-multitask",
+                                        model_kwargs={'device': 'cpu'},
+                                        encode_kwargs={'normalize_embeddings': True}
+                                        )  
+
+def tiktoken_len(text):
+    tokenizer = tiktoken.get_encoding("cl100k_base")
+    tokens = tokenizer.encode(text)
+    return len(tokens)
+    
+def get_text_chunks(text, types):
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=900,
+        chunk_overlap=100,
+        length_function=tiktoken_len
+    )
+    chunks = text_splitter.split_documents(text)
+    return chunks
+
+def get_vectorstore(text_chunks, index_name):
+#     vectordb = FAISS.from_documents(text_chunks, embeddings)
+    vectordb = embed_index(doc_list=text_chunks,
+               embed_fn = embeddings,
+               index_store = 'v_db', index_nm=index_name)
+    # print(vectordb)
+    return vectordb
+    
+def embed_index(doc_list, embed_fn, index_store, index_nm):
+  #check whether the doc_list is documents, or text
+    try:
+        faiss_db = FAISS.from_documents(doc_list, 
+                              embed_fn)  
+    except Exception as e:
+        faiss_db = FAISS.from_texts(doc_list, 
+                              embed_fn)
+  
+#     if os.path.exists(index_store):
+    if os.path.isfile(f"{index_store}/{index_nm}.faiss"):
+        if index_nm:
+            local_db = FAISS.load_local(index_store,embed_fn,index_nm, allow_dangerous_deserialization=True)
+        #merging the new embedding with the existing index store
+            local_db.merge_from(faiss_db)
+            local_db.save_local(index_store,index_nm)
+        else:
+            local_db = FAISS.load_local(index_store,embed_fn)
+        #merging the new embedding with the existing index store
+            local_db.merge_from(faiss_db)
+            local_db.save_local(index_store)
+        print("Updated index saved")
+        return local_db
+    else:
+        if index_nm:
+            faiss_db.save_local(folder_path=index_store, index_name = index_nm)
+        else: 
+            faiss_db.save_local(folder_path=index_store)
+        print("New store created...")
+        return faiss_db
+
+# local embedding
+def local_embedding(docs, index_name="fewshots"):
+    file_path = f'v_db/{index_name}'
+    print(f'{file_path}.faiss')
+    if os.path.exists(f'{file_path}.faiss'): #기존 파일삭제
+        os.remove(f'{file_path}.faiss')
+        os.remove(f'{file_path}.pkl')
+    text_chunks= get_text_chunks(docs, 'text')
+    return get_vectorstore(text_chunks, index_name)
+
+# load existing vector db
+def get_local_vector(index_nm):
+    index_store = 'v_db'
+    print('load vector: ', index_nm)
+    return FAISS.load_local(index_store,embeddings,index_nm, allow_dangerous_deserialization=True)

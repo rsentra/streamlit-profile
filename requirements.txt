@@ -3,9 +3,21 @@ streamlit-aggrid
 streamlit-option-menu
 st_pages
 pandas
-psycopg2-binary
-pygwalker
+#- psycopg2-binary==2.8.4
+#- pygwalker
 plotly
 python-pptx
 PyMySQL
 openpyxl
+langchain
+# sentence-transformers>=2.6.0,<4.1.0
+# torch>=1.11.0,<2.7.0
+langchain_huggingface==0.1.2
+langchain_community
+langchain_openai
+langchain_anthropic
+langchain_core
+typing
+# # json
+langgraph
+tiktoken
