@@ -1,0 +1,13 @@
+{"List all projects.": "SELECT * FROM projects;",
+"프리랜서, 프리 명단을 조회하는 sql문장은?": "select * from members.profiles where job_type = '프리';",
+"자사, 직원 목록을 추출하는 sql문장은?": "select * from members.profiles where job_type = '자사';",
+"퇴사한 사람의 프로필을 추출하는 sql문장은?": "select * from members.profiles where employ_status is not null and employ_status !='';",
+"재직중인(퇴사 하지않은) 사람을 조회하는 방법은?": "select * from members.profiles where employ_status is null or employ_status='';",
+"퇴사자(직원) 이름을 조회해줘": "select name from members.profiles where employ_status is not null;",
+"나이를 계산하는 방법은": "select YEAR(NOW())-LEFT(birth_date,4) from members.profiles;",
+"나이가 40대인 사람을 조회하는 방법은": "select * from members.profiles where birth_date <= (select date_add(curdate(), interval -40 year))  and birth_date > (select date_add(curdate(), interval -50 year));",
+"'홍길동'의 프로젝트 투입이력을 조회": "select b.*  from members.profiles a, members.careers b where a.name like '홍길동%' and a.id = b.id;",
+"'저축은행' 프로젝트를 수행해본 사람을 조회": "select a.name, b.* from members.careers b, members.profiles a where (b.customer like '%저축은행%' or b.project_name like '%저축은행%') and a.id = b.id;",
+"카드사 프로젝트 목록은?": "select * from members.projects where project_name like '%카드%';",
+"개인별 프로젝트 최종 수행 경력일을 조회합니다.": "SELECT p.name, c.start_date, c.end_date FROM members.profiles p JOIN members.careers c ON p.id = c.id and c.end_date = (SELECT max(end_date) from  members.careers where id=p.id);"
+}
